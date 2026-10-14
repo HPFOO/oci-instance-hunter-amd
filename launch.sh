@@ -19,6 +19,7 @@ fi
 
 # 2. Resolve SSH public key
 PUB_KEY="${SSH_KEY:-$2}"
+KEY_AUTO_GENERATED=0
 
 if [ -z "$PUB_KEY" ]; then
   if [ -f "$HOME/.ssh/id_rsa.pub" ]; then
@@ -54,6 +55,7 @@ if [ -z "$PUB_KEY" ]; then
       mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
       ssh-keygen -t ed25519 -N "" -f "$HOME/.ssh/id_ed25519" -C "oci-amd-auto-key"
       PUB_KEY=$(cat "$HOME/.ssh/id_ed25519.pub")
+      KEY_AUTO_GENERATED=1
       echo ">> Key created successfully!"
     fi
   fi
@@ -101,7 +103,7 @@ IMG_ID=$(oci compute image list --compartment-id "$COMP_ID" \
   --operating-system "Canonical Ubuntu" \
   --shape "VM.Standard.E2.1.Micro" \
   --sort-by TIMECREATED --sort-order DESC \
-  --query "data[?contains(\"display-name\", '22.04')].id | [0]" --raw-output)
+  --query 'data[?contains("display-name", `22.04`)].id | [0]' --raw-output)
 
 # 6. Write metadata payload safely
 cat << EOF > metadata.json
@@ -113,7 +115,7 @@ COUNT=0
 FDS=("FAULT-DOMAIN-1" "FAULT-DOMAIN-2" "FAULT-DOMAIN-3")
 
 echo "--------------------------------------------------"
-echo "Hunting for capacity. Press Ctrl+C to terminate."
+echo "Hunting for AMD capacity. Press Ctrl+C to terminate."
 echo "--------------------------------------------------"
 
 while true; do
@@ -139,6 +141,32 @@ while true; do
     echo "SUCCESS: AMD Instance provisioned successfully!"
     echo "=================================================="
     rm -f metadata.json
+
+    # Fetch public IP
+    INST_ID=$(echo "$OUTPUT" | grep -oE '"id": "ocid1.instance.oc1.[^"]+' | head -n 1 | cut -d'"' -f4 || true)
+    if [ -n "$INST_ID" ]; then
+      PUB_IP=$(oci compute instance list-vnics --instance-id "$INST_ID" --query 'data[0]."public-ip"' --raw-output 2>/dev/null || echo "<YOUR_PUBLIC_IP>")
+    else
+      PUB_IP="<YOUR_PUBLIC_IP>"
+    fi
+
+    echo ">> Public IP: $PUB_IP"
+    echo "--------------------------------------------------"
+
+    if [ "$KEY_AUTO_GENERATED" -eq 1 ]; then
+      echo "🔑 SSH KEY NOTICE:"
+      echo "A new private key was generated at: ~/.ssh/id_ed25519"
+      echo "To display the private key content to copy to your local machine, run:"
+      echo "  cat ~/.ssh/id_ed25519"
+      echo ""
+      echo "On your local Mac / Linux machine, save it as a file (e.g. ~/.ssh/oci_amd_key) and connect:"
+      echo "  chmod 600 ~/.ssh/oci_amd_key"
+      echo "  ssh -i ~/.ssh/oci_amd_key ubuntu@$PUB_IP"
+    else
+      echo "Connect via SSH:"
+      echo "  ssh -i /path/to/your/private_key ubuntu@$PUB_IP"
+    fi
+    echo "=================================================="
     break
   fi
 
