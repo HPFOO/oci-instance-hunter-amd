@@ -10,14 +10,14 @@ echo "=================================================="
 echo "   OCI Free Tier AMD Instance Auto-Provisioner    "
 echo "=================================================="
 
-# 获取实例名称
+# 1. Resolve instance display name
 MY_NAME="${VM_NAME:-$1}"
 if [ -z "$MY_NAME" ]; then
   read -r -p "Enter instance name [Default: oci-amd-vm]: " input_name
   MY_NAME="${input_name:-oci-amd-vm}"
 fi
 
-# 解析 SSH 公钥
+# 2. Resolve SSH public key
 PUB_KEY="${SSH_KEY:-$2}"
 
 if [ -z "$PUB_KEY" ]; then
@@ -67,12 +67,12 @@ fi
 echo ">> Target Instance Name : $MY_NAME"
 echo ">> Target VNIC Name     : ${MY_NAME}-vnic"
 
-# 获取租户与可用区
+# 3. Retrieve OCI tenancy and availability domain
 echo ">> Querying OCI tenancy & availability domain..."
 COMP_ID=$(oci iam tenancy get --tenancy-id "$OCI_TENANCY" --query "data.id" --raw-output)
 AD_NAME=$(oci iam availability-domain list --compartment-id "$COMP_ID" --query "data[0].name" --raw-output)
 
-# 检查或新建隔离 VCN
+# 4. Check or create dedicated isolated VCN
 VCN_NAME="${MY_NAME}-vcn"
 echo ">> Verifying isolated network: ${VCN_NAME}..."
 VCN_ID=$(oci network vcn list --compartment-id "$COMP_ID" --display-name "$VCN_NAME" --query "data[0].id" --raw-output 2>/dev/null || true)
@@ -95,7 +95,7 @@ else
   SUB_ID=$(oci network subnet list --compartment-id "$COMP_ID" --vcn-id "$VCN_ID" --display-name "${MY_NAME}-subnet" --query "data[0].id" --raw-output)
 fi
 
-# 获取 Ubuntu 22.04 LTS (x86_64) 镜像
+# 5. Resolve Ubuntu 22.04 LTS x86_64 image
 echo ">> Resolving latest Ubuntu 22.04 LTS x86_64 image..."
 IMG_ID=$(oci compute image list --compartment-id "$COMP_ID" \
   --operating-system "Canonical Ubuntu" \
@@ -103,12 +103,12 @@ IMG_ID=$(oci compute image list --compartment-id "$COMP_ID" \
   --sort-by TIMECREATED --sort-order DESC \
   --query "data[?contains(\"display-name\", '22.04')].id | [0]" --raw-output)
 
-# 写入 metadata 文件
+# 6. Write metadata payload safely
 cat << EOF > metadata.json
 {"ssh_authorized_keys": "$PUB_KEY"}
 EOF
 
-# 轮询循环
+# 7. Fault-Domain polling loop
 COUNT=0
 FDS=("FAULT-DOMAIN-1" "FAULT-DOMAIN-2" "FAULT-DOMAIN-3")
 
@@ -134,7 +134,7 @@ while true; do
     --metadata file://metadata.json \
     2>&1) || true
 
-  if echo "$OUTPUT" | grep -qi "\"lifecycle-state\": \"PROVISIONING\""; then
+  if echo "$OUTPUT" | grep -qi 'PROVISIONING'; then
     echo "=================================================="
     echo "SUCCESS: AMD Instance provisioned successfully!"
     echo "=================================================="
