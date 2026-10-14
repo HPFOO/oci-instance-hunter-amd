@@ -62,7 +62,7 @@ Oracle Cloud Shell disconnects after 20 minutes of inactivity. To keep the scrip
    ```
 2. Run the one-line command inside tmux:
    ```bash
-   bash -c "$(https://raw.githubusercontent.com/hpfoo/oci-instance-hunter-amd/main/launch.sh)"
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/hpfoo/oci-instance-hunter-amd/main/launch.sh)"
    ```
 3. Detach safely: press `Ctrl + B`, then press `D`.
 
