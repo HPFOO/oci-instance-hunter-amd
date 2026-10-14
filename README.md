@@ -1,5 +1,9 @@
 # 👨🏻‍💻 OCI Free Tier AMD Instance Hunter
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Oracle%20Cloud-red.svg)](https://cloud.oracle.com/)
+[![Shape](https://img.shields.io/badge/Shape-VM.Standard.E2.1.Micro-blue.svg)]()
+
 An automated, zero-dependency Bash script to hunt and launch an **Oracle Cloud Infrastructure (OCI) Always Free AMD instance (`VM.Standard.E2.1.Micro`)**.
 
 It handles isolated network creation, SSH key generation, and fault-domain cycling with adaptive jitter backoff out of the box.
@@ -18,19 +22,39 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/hpfoo/oci-instance-hunte
 
 ---
 
-## 🔑 Flexible SSH Key Management
+## 🔑 How SSH Keys Work (Beginner Guide)
 
-The script gives you total flexibility with SSH credentials:
-* **Default Auto-Detection:** Automatically detects existing keys at `~/.ssh/id_rsa.pub` or `~/.ssh/id_ed25519.pub`.
-* **Custom Key Path:** Point directly to any custom file path (e.g., `~/.ssh/my_custom_key.pub` or `/tmp/uploaded_key.pub`).
-* **Direct String:** Paste your public key string directly into the prompt.
-* **Auto-Generation:** If you don't have a key, the script can auto-generate a brand-new ED25519 key pair on the fly without leaving Cloud Shell.
+If you are new to SSH or do not have an SSH key prepared, the script handles the entire process:
+
+### 1. Auto-Generation (Recommended for Beginners)
+Select **Option 3** when prompted. The script automatically creates a clean, passwordless ED25519 key pair on the fly inside Cloud Shell at `~/.ssh/id_ed25519`.
+
+### 2. How to Retrieve the Private Key onto Your Local Machine
+Since the key was created inside Cloud Shell, you need the private key on your local machine (Mac / PC) to connect:
+
+* **Method A (Copy-Paste Text - Recommended):**
+  In Cloud Shell, display your private key:
+  ```bash
+  cat ~/.ssh/id_ed25519
+  ```
+  Copy the entire output (including `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----`), save it as a local file (e.g. `~/.ssh/oci_amd_key`), and restrict permissions:
+  ```bash
+  chmod 600 ~/.ssh/oci_amd_key
+  ```
+
+* **Method B (Download File via Cloud Shell GUI):**
+  Click the **Gear / Ellipsis** icon in the top-right menu of Cloud Shell -> select **Download File** -> enter `/home/<your-user>/.ssh/id_ed25519`.
+
+### 3. Connect to Your Server
+```bash
+ssh -i ~/.ssh/oci_amd_key ubuntu@<YOUR_PUBLIC_IP>
+```
 
 ---
 
 ## 🕒 Running in Background (`tmux` - Optional)
 
-Oracle Cloud Shell disconnects after 20 minutes of inactivity. If you plan to leave it hunting overnight without terminal timeout:
+Oracle Cloud Shell disconnects after 20 minutes of inactivity. To keep the script hunting 24/7 without terminal timeout:
 
 1. Start a persistent tmux session:
    ```bash
@@ -38,7 +62,7 @@ Oracle Cloud Shell disconnects after 20 minutes of inactivity. If you plan to le
    ```
 2. Run the one-line command inside tmux:
    ```bash
-   bash -c "$(curl -fsSL https://raw.githubusercontent.com/hpfoo/oci-instance-hunter-amd/main/launch.sh)"
+   bash -c "$(https://raw.githubusercontent.com/hpfoo/oci-instance-hunter-amd/main/launch.sh)"
    ```
 3. Detach safely: press `Ctrl + B`, then press `D`.
 
@@ -68,19 +92,14 @@ tmux attach -t hunt-amd
 
 ---
 
-## 💻 SSH Connection After Provisioning
+## 💻 Retrieve Public IP Manually
 
-Once the script outputs `🎉 SUCCESS`, retrieve your public IP in Cloud Shell:
+If you ever need to query your instance public IP again, run this in Cloud Shell:
 
 ```bash
 oci compute instance list-vnics \
   --instance-id $(oci compute instance list --display-name "oci-amd-vm" --query "data[0].id" --raw-output) \
-  --query "data[0].\"public-ip\"" --raw-output
-```
-
-Connect directly:
-```bash
-ssh -i ~/.ssh/id_ed25519 ubuntu@<YOUR_PUBLIC_IP>
+  --query 'data[0]."public-ip"' --raw-output
 ```
 
 ---
