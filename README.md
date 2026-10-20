@@ -66,7 +66,19 @@ To check progress later:
 ```bash
 tmux attach -t hunt-amd
 ```
+---
+## 🧭 Managing Background Sessions
 
+```bash
+# Check running background sessions
+tmux ls
+
+# Reattach / check progress later
+tmux attach -t hunt-arm
+
+# Kill / remove the session completely (when provisioned or no longer needed)
+tmux kill-session -t hunt-arm
+```
 ---
 
 ## 🛠️ Architecture & Under the Hood
