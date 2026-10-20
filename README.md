@@ -22,34 +22,30 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/hpfoo/oci-instance-hunte
 
 ---
 
-## 🔑 How SSH Keys Work (Beginner Guide)
+### 🔑 How SSH Keys Work (Beginner Guide)
 
-If you are new to SSH or do not have an SSH key prepared, the script handles the entire process:
+If you are new to SSH or do not have a key, the script handles everything seamlessly without overriding existing credentials:
 
-### 1. Auto-Generation (Recommended for Beginners)
-Select **Option 3** when prompted. The script automatically creates a clean, passwordless ED25519 key pair on the fly inside Cloud Shell at `~/.ssh/id_ed25519`.
+1. **Option 3 (Auto-Generate - Dedicated per Instance)**:
+   - The script creates a dedicated, FIPS-compliant RSA 4096-bit key pair specifically named after your instance: `~/.ssh/<instance-name>_id_rsa`.
+   - Running the script multiple times for different instances (ARM/AMD) will keep individual keys isolated.
 
-### 2. How to Retrieve the Private Key onto Your Local Machine
-Since the key was created inside Cloud Shell, you need the private key on your local machine (Mac / PC) to connect:
+2. **How to get the private key onto your local Mac / PC**:
+   - **Method A (Copy-Paste Text)**: In Cloud Shell, run:
+     ```bash
+     cat ~/.ssh/<instance-name>_id_rsa
+     ```
+     Copy the entire block starting from `-----BEGIN OPENSSH PRIVATE KEY-----` to `-----END OPENSSH PRIVATE KEY-----`. Save it on your local machine (e.g., `~/.ssh/<instance-name>_key`) and set strict permissions:
+     ```bash
+     chmod 600 ~/.ssh/<instance-name>_key
+     ```
 
-* **Method A (Copy-Paste Text - Recommended):**
-  In Cloud Shell, display your private key:
-  ```bash
-  cat ~/.ssh/id_ed25519
-  ```
-  Copy the entire output (including `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----`), save it as a local file (e.g. `~/.ssh/oci_amd_key`), and restrict permissions:
-  ```bash
-  chmod 600 ~/.ssh/oci_amd_key
-  ```
+   - **Method B (Download File via Web GUI)**: 
+     Click the **Gear / Ellipsis icon** in the Cloud Shell top-right menu -> select **Download File** -> enter `.ssh/<instance-name>_id_rsa`.
 
-* **Method B (Download File via Cloud Shell GUI):**
-  Click the **Gear / Ellipsis** icon in the top-right menu of Cloud Shell -> select **Download File** -> enter `/home/<your-user>/.ssh/id_ed25519`.
-
-### 3. Connect to Your Server
-```bash
-ssh -i ~/.ssh/oci_amd_key ubuntu@<YOUR_PUBLIC_IP>
-```
-
+3. **Connect to your server**:
+   ```bash
+   ssh -i ~/.ssh/<instance-name>_key ubuntu@<YOUR_PUBLIC_IP>
 ---
 
 ## 🕒 Running in Background (`tmux` - Optional)
