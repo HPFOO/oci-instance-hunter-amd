@@ -74,10 +74,10 @@ tmux attach -t hunt-amd
 tmux ls
 
 # Reattach / check progress later
-tmux attach -t hunt-arm
+tmux attach -t hunt-and
 
 # Kill / remove the session completely (when provisioned or no longer needed)
-tmux kill-session -t hunt-arm
+tmux kill-session -t hunt-and
 ```
 ---
 
